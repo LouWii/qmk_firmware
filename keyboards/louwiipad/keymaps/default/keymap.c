@@ -15,6 +15,8 @@
  */
 #include QMK_KEYBOARD_H
 
+#include <print.h>
+
 // Each layer gets a name for readability, which is then used in the keymap matrix below.
 // The underscores don't mean anything - you can have a layer called STUFF or any other name.
 // Layer names don't all need to be of the same length, obviously, and you can also skip them
@@ -22,12 +24,24 @@
 #define _BL  0
 #define _UP  1
 #define _BKL 2
+#define _LSEL  31 // Make sure this layer is the very last one
+
+const char PROGMEM layer_names[3][20] = {
+  "Base Layer",
+  "Up Layer",
+  "Backlight Layer"
+};
 
 // Defines the keycodes used by our macros in process_record_user
 enum custom_keycodes {
   QMKBEST = SAFE_RANGE,
   QMKURL
 };
+
+
+static bool layer_select_toggled = 0;
+static uint8_t layer_pre_select;
+static uint16_t key_timer;
 
 #define LUP_TG TG(_UP)
 
@@ -43,6 +57,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [_BKL] = LAYOUT(
     RGB_TOG,        RGB_MOD,  KC_NO, KC_NO,
     RGB_MODE_PLAIN, RGB_RMOD, KC_NO, KC_NO
+  ),
+  [_LSEL] = LAYOUT(
+    TO(_BL), TO(_UP), TO(_BKL), TO(_BL),
+    TO(_BL), TO(_UP), TO(_BKL), TO(_BL)
   ),
 };
 
@@ -68,67 +86,90 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   return true;
 }
 
-void encoder_update_user(uint8_t index, bool clockwise) {
+void display_layer_pre_select(void) {
+  oled_set_cursor(0, 1);
+  oled_write_P(PSTR("> "), false);
+  oled_write_ln_P(layer_names[layer_pre_select], false);
+}
 
-  if (index == 0) { /* First encoder */
+void encoder_update_user(uint8_t index, bool clockwise) {
+  if (layer_select_toggled) {
     if (clockwise) {
-      // tap_code(KC_PGDN);
-      // tap_code(RGB_VAI);
-      rgblight_increase_val();
+      // Pre-select layer++
+      // oled_write_P(PSTR("Layer++\n"), false);
+      layer_pre_select = (layer_pre_select + 1) % 3;
     } else {
-      // tap_code(KC_PGUP);
-      // tap_code(RGB_VAD);
-      rgblight_decrease_val();
+      // Pre-select layer--
+      // oled_write_P(PSTR("Layer--\n"), false);
+      if (layer_pre_select == 0) {
+        layer_pre_select = 3;
+      } else {
+        layer_pre_select--;
+      }
     }
-  } else if (index == 1) { /* Second encoder */  
-    if (clockwise) {
-      // tap_code(KC_PGDN);
-      // tap_code(RGB_VAI);
-      rgblight_increase_hue();
-    } else {
-      // tap_code(KC_PGUP);
-      // tap_code(RGB_VAD);
-      rgblight_decrease_hue();
-    }
-  } else if (index == 2) { /* Third encoder */
-    if (clockwise) {
-      // tap_code(KC_PGDN);
-      // tap_code(RGB_VAI);
-      rgblight_increase_sat();
-    } else {
-      // tap_code(KC_PGUP);
-      // tap_code(RGB_VAD);
-      rgblight_decrease_sat();
-    }
-  } else if (index == 3) { /* Fourth encoder */
-    if (clockwise) {
-      // tap_code(KC_PGDN);
-      // tap_code(RGB_VAI);
-      rgblight_increase_val();
-    } else {
-      // tap_code(KC_PGUP);
-      // tap_code(RGB_VAD);
-      rgblight_decrease_val();
-    }
-  } else if (index == 4) { /* Fifth encoder */
-    if (clockwise) {
-      // tap_code(KC_PGDN);
-      // tap_code(RGB_VAI);
-      rgblight_increase_val();
-    } else {
-      // tap_code(KC_PGUP);
-      // tap_code(RGB_VAD);
-      rgblight_decrease_val();
-    }
-  } else if (index == 5) { /* Sixth encoder */
-    if (clockwise) {
-      // tap_code(KC_PGDN);
-      // tap_code(RGB_VAI);
-      rgblight_step();
-    } else {
-      // tap_code(KC_PGUP);
-      // tap_code(RGB_VAD);
-      rgblight_step_reverse();
+    uprintf("Layer pre-s: %d \n", layer_pre_select);
+    display_layer_pre_select();
+  } else {
+    if (index == 0) { /* First encoder */
+      if (clockwise) {
+        // tap_code(KC_PGDN);
+        // tap_code(RGB_VAI);
+        rgblight_increase_val();
+      } else {
+        // tap_code(KC_PGUP);
+        // tap_code(RGB_VAD);
+        rgblight_decrease_val();
+      }
+    } else if (index == 1) { /* Second encoder */  
+      if (clockwise) {
+        // tap_code(KC_PGDN);
+        // tap_code(RGB_VAI);
+        rgblight_increase_hue();
+      } else {
+        // tap_code(KC_PGUP);
+        // tap_code(RGB_VAD);
+        rgblight_decrease_hue();
+      }
+    } else if (index == 2) { /* Third encoder */
+      if (clockwise) {
+        // tap_code(KC_PGDN);
+        // tap_code(RGB_VAI);
+        rgblight_increase_sat();
+      } else {
+        // tap_code(KC_PGUP);
+        // tap_code(RGB_VAD);
+        rgblight_decrease_sat();
+      }
+    } else if (index == 3) { /* Fourth encoder */
+      if (clockwise) {
+        // tap_code(KC_PGDN);
+        // tap_code(RGB_VAI);
+        rgblight_increase_val();
+      } else {
+        // tap_code(KC_PGUP);
+        // tap_code(RGB_VAD);
+        rgblight_decrease_val();
+      }
+    } else if (index == 4) { /* Fifth encoder */
+      if (clockwise) {
+        // tap_code(KC_PGDN);
+        // tap_code(RGB_VAI);
+        rgblight_increase_val();
+      } else {
+        // tap_code(KC_PGUP);
+        // tap_code(RGB_VAD);
+        rgblight_decrease_val();
+      }
+    } else if (index == 5) { /* Sixth encoder */
+      if (clockwise) {
+        // tap_code(KC_PGDN);
+        // tap_code(RGB_VAI);
+        rgblight_step();
+      } else {
+        // tap_code(KC_PGUP);
+        // tap_code(RGB_VAD);
+        rgblight_step_reverse();
+      }
     }
   }
 }
@@ -136,18 +177,18 @@ void encoder_update_user(uint8_t index, bool clockwise) {
 #ifdef OLED_DRIVER_ENABLE
 void oled_task_user(void) {
   // Host Keyboard Layer Status
-  oled_write_P(PSTR("Layer: "), false);
-  switch (get_highest_layer(layer_state)) {
-    case _BL:
-      oled_write_P(PSTR("Default\n"), false);
-      break;
-    case _UP:
-      oled_write_P(PSTR("FN\n"), false);
-      break;
-    default:
-      // Or use the write_ln shortcut over adding '\n' to the end of your string
-      oled_write_ln_P(PSTR("Undefined"), false);
-  }
+  // oled_write_P(PSTR("Layer: "), false);
+  // switch (get_highest_layer(layer_state)) {
+  //   case _BL:
+  //     oled_write_P(PSTR("Default\n"), false);
+  //     break;
+  //   case _UP:
+  //     oled_write_P(PSTR("FN\n"), false);
+  //     break;
+  //   default:
+  //     // Or use the write_ln shortcut over adding '\n' to the end of your string
+  //     oled_write_ln_P(PSTR("Undefined"), false);
+  // }
 
   // Host Keyboard LED Status
   // uint8_t led_usb_state = host_keyboard_leds();
@@ -159,12 +200,92 @@ void oled_task_user(void) {
 
 void matrix_init_user(void) {
 
+  setPinInputHigh(D5);
+
+  layer_pre_select = biton32(layer_state);
 }
 
 void matrix_scan_user(void) {
+  if (!readPin(D5)) {
 
+    // "Debounce"
+    if (key_timer == 0 || timer_elapsed(key_timer) > 500) {
+      if (!layer_select_toggled) {
+        layer_select_toggled = 1;
+
+        layer_clear();
+        layer_on(_LSEL);
+      } else {
+        layer_clear();
+        layer_on(layer_pre_select);
+        layer_select_toggled = 0;
+      }
+
+      key_timer = timer_read();
+    }
+
+    // SEND_STRING("UP");
+    // layer_clear();
+    // layer_on(_LSEL);
+    // Or use set_single_persistent_default_layer instead?
+  }
+
+  // #ifdef RGBLIGHT_ENABLE
+
+  // static uint8_t old_layer = 255;
+  // uint8_t new_layer = biton32(layer_state);
+
+  // if (old_layer != new_layer) {
+  //   switch (new_layer) {
+  //     case _PS:
+  //       // #31C5F0
+  //       rgblight_setrgb(49, 197, 240);
+  //     break;
+  //     case _AI:
+  //       // #FF8011
+  //       rgblight_setrgb(255, 128, 17);
+  //     break;
+  //     case _PR:
+  //       // #E788FF
+  //       rgblight_setrgb(231, 136, 255);
+  //     break;
+  //     case _XD:
+  //       // #FF2BC2
+  //       rgblight_setrgb(255, 43, 194);
+  //     break;
+  //   }
+  //   old_layer = new_layer;
+  // }
+  // #endif
 }
 
 void led_set_user(uint8_t usb_led) {
 
+}
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+  // runs every time that the layers get changed
+  uprintf("Highest layer: %d \n", get_highest_layer(state));
+
+  oled_clear();
+  switch (get_highest_layer(state)) {
+    case _LSEL:
+      // rgblight_setrgb (0x00,  0x00, 0xFF);
+      oled_write_ln_P(PSTR("Select Layer:"), false);
+      display_layer_pre_select();
+      break;
+    default: //  for any other layers, or the default layer
+      // rgblight_setrgb (0x00,  0xFF, 0xFF);
+      oled_write_P(layer_names[get_highest_layer(state)], false);
+      break;
+  }
+  return state;
+}
+
+void keyboard_post_init_user(void) {
+  // Customise these values to desired behaviour
+  debug_enable = true;
+  debug_matrix = true;
+  debug_keyboard = true;
+  //debug_mouse=true;
 }
