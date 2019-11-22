@@ -38,10 +38,8 @@ enum custom_keycodes {
   QMKURL
 };
 
-
-static bool layer_select_toggled = 0;
 static uint8_t layer_pre_select;
-static uint16_t key_timer;
+static uint16_t rotary_click_timer;
 
 #define LUP_TG TG(_UP)
 
@@ -93,7 +91,7 @@ void display_layer_pre_select(void) {
 }
 
 void encoder_update_user(uint8_t index, bool clockwise) {
-  if (layer_select_toggled) {
+  if (biton32(layer_state) == _LSEL) {
     if (clockwise) {
       // Pre-select layer++
       // oled_write_P(PSTR("Layer++\n"), false);
@@ -107,7 +105,6 @@ void encoder_update_user(uint8_t index, bool clockwise) {
         layer_pre_select--;
       }
     }
-    uprintf("Layer pre-s: %d \n", layer_pre_select);
     display_layer_pre_select();
   } else {
     if (index == 0) { /* First encoder */
@@ -209,19 +206,16 @@ void matrix_scan_user(void) {
   if (!readPin(D5)) {
 
     // "Debounce"
-    if (key_timer == 0 || timer_elapsed(key_timer) > 500) {
-      if (!layer_select_toggled) {
-        layer_select_toggled = 1;
-
+    if (rotary_click_timer == 0 || timer_elapsed(rotary_click_timer) > 500) {
+      if (biton32(layer_state) != _LSEL) {
         layer_clear();
         layer_on(_LSEL);
       } else {
         layer_clear();
         layer_on(layer_pre_select);
-        layer_select_toggled = 0;
       }
 
-      key_timer = timer_read();
+      rotary_click_timer = timer_read();
     }
 
     // SEND_STRING("UP");
@@ -264,7 +258,7 @@ void led_set_user(uint8_t usb_led) {
 }
 
 layer_state_t layer_state_set_user(layer_state_t state) {
-  // runs every time that the layers get changed
+  // runs every time that the layer get changed
   uprintf("Highest layer: %d \n", get_highest_layer(state));
 
   oled_clear();
