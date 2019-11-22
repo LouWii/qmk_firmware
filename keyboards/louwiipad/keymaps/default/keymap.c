@@ -259,7 +259,6 @@ void led_set_user(uint8_t usb_led) {
 
 layer_state_t layer_state_set_user(layer_state_t state) {
   // runs every time that the layer get changed
-  uprintf("Highest layer: %d \n", get_highest_layer(state));
 
   oled_clear();
   switch (get_highest_layer(state)) {
