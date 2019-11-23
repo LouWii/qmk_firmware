@@ -24,22 +24,33 @@
 #define _BL  0
 #define _UP  1
 #define _BKL 2
+#define _LGTRM 3
 #define _LSEL  31 // Make sure this layer is the very last one
 
-const char PROGMEM layer_names[3][20] = {
+const int layers_count = 4;
+
+const char PROGMEM layer_names[4][20] = {
   "Base Layer",
   "Up Layer",
-  "Backlight Layer"
+  "Backlight Layer",
+  "Lightroom 1"
 };
 
 // Defines the keycodes used by our macros in process_record_user
 enum custom_keycodes {
   QMKBEST = SAFE_RANGE,
-  QMKURL
+  QMKURL,
+  MIDI_SEND_CLOCK,
+  MIDI_SEND_TICK,
+  MIDI_SEND_START,
+  MIDI_SEND_CONTINUE,
+  MIDI_SEND_STOP,
+  MIDI_SEND_ACTIVESENSE
 };
 
 static uint8_t layer_pre_select;
 static uint16_t rotary_click_timer;
+static MidiDevice *midi_device;
 
 #define LUP_TG TG(_UP)
 
@@ -60,6 +71,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     TO(_BL), TO(_UP), TO(_BKL), TO(_BL),
     TO(_BL), TO(_UP), TO(_BKL), TO(_BL)
   ),
+  [_LGTRM] = LAYOUT(
+    KC_1, KC_2, KC_3, KC_4,
+    KC_A, KC_B, KC_C, KC_D
+  )
 };
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -80,6 +95,27 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         // when keycode QMKURL is released
       }
       break;
+    // case MIDI_SEND_START:
+    //   if (record->event.pressed) {
+    //     midi_send_start(midi_device);
+    //   }
+    //   break;
+    // case MIDI_SEND_STOP:
+    //   if (record->event.pressed) {
+    //     midi_send_stop(midi_device);
+    //   }
+    //   break;
+    // case MIDI_SEND_CONTINUE:
+    //   if (record->event.pressed) {
+    //     midi_send_continue(midi_device);
+    //   }
+    //   break;
+    // case MIDI_SEND_ACTIVESENSE:
+    //   if (record->event.pressed) {
+    //     midi_send_activesense(midi_device);
+    //   }
+    //   break;
+
   }
   return true;
 }
@@ -95,12 +131,12 @@ void encoder_update_user(uint8_t index, bool clockwise) {
     if (clockwise) {
       // Pre-select layer++
       // oled_write_P(PSTR("Layer++\n"), false);
-      layer_pre_select = (layer_pre_select + 1) % 3;
+      layer_pre_select = (layer_pre_select + 1) % layers_count;
     } else {
       // Pre-select layer--
       // oled_write_P(PSTR("Layer--\n"), false);
       if (layer_pre_select == 0) {
-        layer_pre_select = 3;
+        layer_pre_select = (layers_count - 1);
       } else {
         layer_pre_select--;
       }
@@ -108,14 +144,22 @@ void encoder_update_user(uint8_t index, bool clockwise) {
     display_layer_pre_select();
   } else {
     if (index == 0) { /* First encoder */
-      if (clockwise) {
-        // tap_code(KC_PGDN);
-        // tap_code(RGB_VAI);
-        rgblight_increase_val();
+      if (biton32(layer_state) == _LGTRM) {
+        if (clockwise) {
+          midi_send_noteon(midi_device, 1, 1, 1);
+        } else {
+          midi_send_noteoff(midi_device, 1, 1, 1);
+        }
       } else {
-        // tap_code(KC_PGUP);
-        // tap_code(RGB_VAD);
-        rgblight_decrease_val();
+        if (clockwise) {
+          // tap_code(KC_PGDN);
+          // tap_code(RGB_VAI);
+          rgblight_increase_val();
+        } else {
+          // tap_code(KC_PGUP);
+          // tap_code(RGB_VAD);
+          rgblight_decrease_val();
+        }
       }
     } else if (index == 1) { /* Second encoder */  
       if (clockwise) {
@@ -196,9 +240,9 @@ void oled_task_user(void) {
 #endif
 
 void matrix_init_user(void) {
-
+  // Rotary encoder 1 switch (used for switching layers)
   setPinInputHigh(D5);
-
+  // Set pre-select layer, used when user wants to change layer
   layer_pre_select = biton32(layer_state);
 }
 
@@ -276,9 +320,13 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 }
 
 void keyboard_post_init_user(void) {
-  // Customise these values to desired behaviour
+  // Debug setup
   debug_enable = true;
   debug_matrix = true;
   debug_keyboard = true;
   //debug_mouse=true;
+
+  // Midi device init
+  // This currently triggers an infinite loop switch 1 trigger
+  // midi_device_init(midi_device);
 }
