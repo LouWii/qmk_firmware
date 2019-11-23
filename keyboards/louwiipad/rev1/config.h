@@ -50,8 +50,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DIODE_DIRECTION COL2ROW
 
 // Rotary encoders
-#define ENCODERS_PAD_A { D4, F7, D3, F4, B0, F0 }
-#define ENCODERS_PAD_B { D6, F6, D2, F1, B7, E6 }
+#define ENCODERS_PAD_B { D4, F7, D3, F4, B0, F0 }
+#define ENCODERS_PAD_A { D6, F6, D2, F1, B7, E6 }
 //#define ENCODER_RESOLUTION 4
 
 // #define BACKLIGHT_PIN B7
