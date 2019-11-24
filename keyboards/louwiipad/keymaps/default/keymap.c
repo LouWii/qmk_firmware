@@ -16,6 +16,9 @@
 #include QMK_KEYBOARD_H
 
 #include <print.h>
+#    include <LUFA/Drivers/USB/USB.h>
+#    include "midi.h"
+#    include "qmk_midi.h"
 
 // Each layer gets a name for readability, which is then used in the keymap matrix below.
 // The underscores don't mean anything - you can have a layer called STUFF or any other name.
@@ -50,7 +53,7 @@ enum custom_keycodes {
 
 static uint8_t layer_pre_select;
 static uint16_t rotary_click_timer;
-static MidiDevice *midi_device;
+// MidiDevice midi_device;
 
 #define LUP_TG TG(_UP)
 
@@ -146,9 +149,11 @@ void encoder_update_user(uint8_t index, bool clockwise) {
     if (index == 0) { /* First encoder */
       if (biton32(layer_state) == _LGTRM) {
         if (clockwise) {
-          midi_send_noteon(midi_device, 1, 1, 1);
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 0, 0x14, 1);
         } else {
-          midi_send_noteoff(midi_device, 1, 1, 1);
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 0, 0x14, 127);
         }
       } else {
         if (clockwise) {
@@ -161,45 +166,65 @@ void encoder_update_user(uint8_t index, bool clockwise) {
           rgblight_decrease_val();
         }
       }
-    } else if (index == 1) { /* Second encoder */  
-      if (clockwise) {
-        // tap_code(KC_PGDN);
-        // tap_code(RGB_VAI);
-        rgblight_increase_hue();
+    } else if (index == 1) { /* Second encoder */
+      if (biton32(layer_state) == _LGTRM) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 1, 0x14, 1);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 1, 0x14, 127);
+        }
       } else {
-        // tap_code(KC_PGUP);
-        // tap_code(RGB_VAD);
-        rgblight_decrease_hue();
+        if (clockwise) {
+          // tap_code(KC_PGDN);
+          // tap_code(RGB_VAI);
+          rgblight_increase_hue();
+        } else {
+          // tap_code(KC_PGUP);
+          // tap_code(RGB_VAD);
+          rgblight_decrease_hue();
+        }
       }
     } else if (index == 2) { /* Third encoder */
-      if (clockwise) {
-        // tap_code(KC_PGDN);
-        // tap_code(RGB_VAI);
-        rgblight_increase_sat();
+      if (biton32(layer_state) == _LGTRM) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 2, 0x14, 1);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 2, 0x14, 127);
+        }
       } else {
-        // tap_code(KC_PGUP);
-        // tap_code(RGB_VAD);
-        rgblight_decrease_sat();
+        if (clockwise) {
+          // tap_code(KC_PGDN);
+          // tap_code(RGB_VAI);
+          // rgblight_increase_sat();
+        } else {
+          // tap_code(KC_PGUP);
+          // tap_code(RGB_VAD);
+          // rgblight_decrease_sat();
+        }
       }
     } else if (index == 3) { /* Fourth encoder */
       if (clockwise) {
         // tap_code(KC_PGDN);
         // tap_code(RGB_VAI);
-        rgblight_increase_val();
+        // rgblight_increase_val();
       } else {
         // tap_code(KC_PGUP);
         // tap_code(RGB_VAD);
-        rgblight_decrease_val();
+        // rgblight_decrease_val();
       }
     } else if (index == 4) { /* Fifth encoder */
       if (clockwise) {
         // tap_code(KC_PGDN);
         // tap_code(RGB_VAI);
-        rgblight_increase_val();
+        // rgblight_increase_val();
       } else {
         // tap_code(KC_PGUP);
         // tap_code(RGB_VAD);
-        rgblight_decrease_val();
+        // rgblight_decrease_val();
       }
     } else if (index == 5) { /* Sixth encoder */
       if (clockwise) {
@@ -328,5 +353,10 @@ void keyboard_post_init_user(void) {
 
   // Midi device init
   // This currently triggers an infinite loop switch 1 trigger
-  // midi_device_init(midi_device);
+  // midi_device_init(&midi_device);
+//   midi_device_set_send_func(&midi_device, usb_send_func);
+//     midi_device_set_pre_input_process_func(&midi_device, usb_get_midi);
+//     midi_register_fallthrough_callback(&midi_device, fallthrough_callback);
+//     midi_register_cc_callback(&midi_device, cc_callback);
+
 }
