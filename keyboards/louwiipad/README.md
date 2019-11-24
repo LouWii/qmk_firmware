@@ -20,3 +20,5 @@ See the [build environment setup](https://docs.qmk.fm/#/getting_started_build_to
 * [GPIO Controls](https://docs.qmk.fm/#/internals_gpio_control)
 * [Debug](https://docs.qmk.fm/#/newbs_testing_debugging?id=debugging)
 * [OLED API](https://docs.qmk.fm/#/feature_oled_driver?id=oled-api)
+* [MIDI2LR](https://github.com/rsjaffe/MIDI2LR/wiki/MIDI-Controller-Setup) to control Lightroom via MIDI commands
+* [MIDI Control Change Messages](https://www.midi.org/specifications/item/table-3-control-change-messages-data-bytes-2)
