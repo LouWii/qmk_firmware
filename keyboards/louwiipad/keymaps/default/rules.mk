@@ -3,7 +3,9 @@
 MIDI_ENABLE = yes
 
 # Console for debug (+4000)
-CONSOLE_ENABLE = no
+CONSOLE_ENABLE = yes
 
 # Enable keyboard RGB underglow
-RGBLIGHT_ENABLE = yes
+RGBLIGHT_ENABLE = no
+
+OLED_DRIVER_ENABLE = no

@@ -65,7 +65,7 @@ ENCODER_ENABLE = yes        # Support for rotary encoders (+524)
 BOOTMAGIC_ENABLE = no       # Virtual DIP switch configuration (+1000)
 MOUSEKEY_ENABLE = no        # Mouse keys (+4700)
 EXTRAKEY_ENABLE = yes       # Audio control and System control (+450)
-CONSOLE_ENABLE = no         # Console for debug (+400)
+CONSOLE_ENABLE = no         # Console for debug (+4000)
 COMMAND_ENABLE = no         # Commands for debug and configuration (+3100)
 # Do not enable SLEEP_LED_ENABLE. it uses the same timer as BACKLIGHT_ENABLE
 SLEEP_LED_ENABLE = no       # Breathing sleep LED during USB suspend

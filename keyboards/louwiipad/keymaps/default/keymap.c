@@ -28,15 +28,17 @@
 #define _UP  1
 #define _BKL 2
 #define _LGTRM 3
+#define _LGTRM2 4
 #define _LSEL  31 // Make sure this layer is the very last one
 
-const int layers_count = 4;
+const int layers_count = 5;
 
-const char PROGMEM layer_names[4][20] = {
+const char PROGMEM layer_names[5][20] = {
   "Base Layer",
   "Up Layer",
   "Backlight Layer",
-  "Lightroom 1"
+  "Lightroom 1",
+  "Lightroom 2"
 };
 
 // Defines the keycodes used by our macros in process_record_user
@@ -54,6 +56,8 @@ enum custom_keycodes {
 static uint8_t layer_pre_select;
 static uint16_t rotary_click_timer;
 // MidiDevice midi_device;
+
+int16_t lt_contrast = 100;
 
 #define LUP_TG TG(_UP)
 
@@ -77,8 +81,58 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [_LGTRM] = LAYOUT(
     MI_C, MI_Cs, MI_D,  MI_Ds,
     MI_E, MI_F,  MI_Fs, MI_G
+  ),
+  [_LGTRM2] = LAYOUT(
+    MI_C, MI_Cs, MI_D,  MI_Ds,
+    MI_E, MI_F,  MI_Fs, MI_G
   )
 };
+
+void matrix_init_user(void) {
+  // Rotary encoder 1 switch (used for switching layers)
+  setPinInputHigh(D5);
+  // Set pre-select layer, used when user wants to change layer
+  layer_pre_select = biton32(layer_state);
+  //print("matrix init user done");
+}
+
+void cc_callback(MidiDevice * device, uint8_t chan, uint8_t num, uint8_t val) {
+  //sending it back on the next channel
+  //midi_send_cc(device, (chan + 1) % 16, num, val);
+  dprintf("CC callback received on channel %d, num %d, value %d\n", chan, num, val);
+}
+
+void catch_all_callback(MidiDevice * device, uint16_t count, uint8_t byte0, uint8_t byte1, uint8_t byte2) {
+  //dprint("Catch all callback midi\n");
+}
+
+void pitchbend_callback(MidiDevice * device, uint8_t chan, uint8_t num, uint8_t val) {
+  dprintf("Pitchbend callback channel %d, num %d, value %d\n", chan, num, val);
+}
+
+void keyboard_post_init_user(void) {
+  // Debug setup
+  debug_enable = true;
+  //debug_matrix = true;
+  debug_keyboard = true;
+  //debug_mouse=true;
+
+  // Midi device init
+  // This currently triggers an infinite loop switch 1 trigger
+  // midi_device_init(&midi_device);
+//   midi_device_set_send_func(&midi_device, usb_send_func);
+//     midi_device_set_pre_input_process_func(&midi_device, usb_get_midi);
+//     midi_register_fallthrough_callback(&midi_device, fallthrough_callback);
+//     midi_register_cc_callback(&midi_device, cc_callback);
+
+  midi_register_cc_callback(&midi_device, cc_callback);
+
+  // midi_register_catchall_callback(&midi_device, catch_all_callback);
+
+  midi_register_pitchbend_callback(&midi_device, pitchbend_callback);
+
+  //print("keyboard post init user done");
+}
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   switch (keycode) {
@@ -124,12 +178,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void display_layer_pre_select(void) {
-  oled_set_cursor(0, 1);
-  oled_write_P(PSTR("> "), false);
-  oled_write_ln_P(layer_names[layer_pre_select], false);
+  // oled_set_cursor(0, 1);
+  // oled_write_P(PSTR("> "), false);
+  // oled_write_ln_P(layer_names[layer_pre_select], false);
+  dprintf("Display layer pre select %d\n", layer_pre_select);
 }
 
 void encoder_update_user(uint8_t index, bool clockwise) {
+  dprintf("Encoder %d changed\n", index);
   if (biton32(layer_state) == _LSEL) {
     if (clockwise) {
       // Pre-select layer++
@@ -150,50 +206,86 @@ void encoder_update_user(uint8_t index, bool clockwise) {
       if (biton32(layer_state) == _LGTRM) {
         if (clockwise) {
           // midi_send_noteon(midi_device, 1, 1, 1);
-          midi_send_cc(&midi_device, 0, 0x14, 1);
+          midi_send_cc(&midi_device, 0, 0x14, 2);
         } else {
           // midi_send_noteoff(midi_device, 1, 1, 1);
-          midi_send_cc(&midi_device, 0, 0x14, 127);
+          midi_send_cc(&midi_device, 0, 0x14, 126);
+        }
+      } else if (biton32(layer_state) == _LGTRM2) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 6, 0x14, 2);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 6, 0x14, 126);
+        }
+      } else if (biton32(layer_state) == _BL) {
+        if (clockwise) {
+          tap_code(KC_PGDN);
+        } else {
+          tap_code(KC_PGUP);
         }
       } else {
         if (clockwise) {
           // tap_code(KC_PGDN);
           // tap_code(RGB_VAI);
-          rgblight_increase_val();
+          // rgblight_increase_val();
         } else {
           // tap_code(KC_PGUP);
           // tap_code(RGB_VAD);
-          rgblight_decrease_val();
+          // rgblight_decrease_val();
         }
       }
     } else if (index == 1) { /* Second encoder */
       if (biton32(layer_state) == _LGTRM) {
         if (clockwise) {
           // midi_send_noteon(midi_device, 1, 1, 1);
-          midi_send_cc(&midi_device, 1, 0x14, 1);
+          midi_send_cc(&midi_device, 1, 0x14, 2);
         } else {
           // midi_send_noteoff(midi_device, 1, 1, 1);
-          midi_send_cc(&midi_device, 1, 0x14, 127);
+          midi_send_cc(&midi_device, 1, 0x14, 126);
+        }
+      } else if (biton32(layer_state) == _LGTRM2) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 7, 0x14, 2);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 7, 0x14, 126);
+        }
+      } else if (biton32(layer_state) == _BL) {
+        if (clockwise) {
+          tap_code(KC_AUDIO_VOL_DOWN);
+        } else {
+          tap_code(KC_AUDIO_VOL_UP);
         }
       } else {
         if (clockwise) {
           // tap_code(KC_PGDN);
           // tap_code(RGB_VAI);
-          rgblight_increase_hue();
+          // rgblight_increase_hue();
         } else {
           // tap_code(KC_PGUP);
           // tap_code(RGB_VAD);
-          rgblight_decrease_hue();
+          // rgblight_decrease_hue();
         }
       }
     } else if (index == 2) { /* Third encoder */
       if (biton32(layer_state) == _LGTRM) {
         if (clockwise) {
           // midi_send_noteon(midi_device, 1, 1, 1);
-          midi_send_cc(&midi_device, 2, 0x14, 1);
+          midi_send_cc(&midi_device, 2, 0x14, 2);
         } else {
           // midi_send_noteoff(midi_device, 1, 1, 1);
-          midi_send_cc(&midi_device, 2, 0x14, 127);
+          midi_send_cc(&midi_device, 2, 0x14, 126);
+        }
+      } else if (biton32(layer_state) == _LGTRM2) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 8, 0x14, 2);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 8, 0x14, 126);
         }
       } else {
         if (clockwise) {
@@ -207,34 +299,95 @@ void encoder_update_user(uint8_t index, bool clockwise) {
         }
       }
     } else if (index == 3) { /* Fourth encoder */
-      if (clockwise) {
-        // tap_code(KC_PGDN);
-        // tap_code(RGB_VAI);
-        // rgblight_increase_val();
+      if (biton32(layer_state) == _LGTRM) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 3, 0x14, 2);
+          if (lt_contrast < 201) {
+            lt_contrast += 1;
+          }
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 3, 0x14, 126);
+          if (lt_contrast > -1) {
+            lt_contrast -= 1;
+          }
+        }
+        //midi_send_pitchbend(&midi_device, 0, lt_contrast);
+      } else if (biton32(layer_state) == _LGTRM2) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 9, 0x14, 2);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 9, 0x14, 126);
+        }
       } else {
-        // tap_code(KC_PGUP);
-        // tap_code(RGB_VAD);
-        // rgblight_decrease_val();
+        if (clockwise) {
+          // tap_code(KC_PGDN);
+          // tap_code(RGB_VAI);
+          // rgblight_increase_val();
+        } else {
+          // tap_code(KC_PGUP);
+          // tap_code(RGB_VAD);
+          // rgblight_decrease_val();
+        }
       }
     } else if (index == 4) { /* Fifth encoder */
-      if (clockwise) {
-        // tap_code(KC_PGDN);
-        // tap_code(RGB_VAI);
-        // rgblight_increase_val();
+      if (biton32(layer_state) == _LGTRM) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 4, 0x14, 2);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 4, 0x14, 126);
+        }
+      } else if (biton32(layer_state) == _LGTRM2) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 10, 0x14, 2);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 10, 0x14, 126);
+        }
       } else {
-        // tap_code(KC_PGUP);
-        // tap_code(RGB_VAD);
-        // rgblight_decrease_val();
+        if (clockwise) {
+          // tap_code(KC_PGDN);
+          // tap_code(RGB_VAI);
+          // rgblight_increase_val();
+        } else {
+          // tap_code(KC_PGUP);
+          // tap_code(RGB_VAD);
+          // rgblight_decrease_val();
+        }
       }
     } else if (index == 5) { /* Sixth encoder */
-      if (clockwise) {
-        // tap_code(KC_PGDN);
-        // tap_code(RGB_VAI);
-        rgblight_step();
+      if (biton32(layer_state) == _LGTRM) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 5, 0x14, 2);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 5, 0x14, 126);
+        }
+      } else if (biton32(layer_state) == _LGTRM2) {
+        if (clockwise) {
+          // midi_send_noteon(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 11, 0x14, 2);
+        } else {
+          // midi_send_noteoff(midi_device, 1, 1, 1);
+          midi_send_cc(&midi_device, 11, 0x14, 126);
+        }
       } else {
-        // tap_code(KC_PGUP);
-        // tap_code(RGB_VAD);
-        rgblight_step_reverse();
+        if (clockwise) {
+          // tap_code(KC_PGDN);
+          // tap_code(RGB_VAI);
+          // rgblight_step();
+        } else {
+          // tap_code(KC_PGUP);
+          // tap_code(RGB_VAD);
+          // rgblight_step_reverse();
+        }
       }
     }
   }
@@ -263,13 +416,6 @@ void oled_task_user(void) {
   // oled_write_P(led_usb_state & (1<<USB_LED_SCROLL_LOCK) ? PSTR("SCRLCK ") : PSTR("       "), false);
 }
 #endif
-
-void matrix_init_user(void) {
-  // Rotary encoder 1 switch (used for switching layers)
-  setPinInputHigh(D5);
-  // Set pre-select layer, used when user wants to change layer
-  layer_pre_select = biton32(layer_state);
-}
 
 void matrix_scan_user(void) {
   if (!readPin(D5)) {
@@ -328,35 +474,18 @@ void led_set_user(uint8_t usb_led) {
 
 layer_state_t layer_state_set_user(layer_state_t state) {
   // runs every time that the layer get changed
-
-  oled_clear();
-  switch (get_highest_layer(state)) {
-    case _LSEL:
-      // rgblight_setrgb (0x00,  0x00, 0xFF);
-      oled_write_ln_P(PSTR("Select Layer:"), false);
-      display_layer_pre_select();
-      break;
-    default: //  for any other layers, or the default layer
-      // rgblight_setrgb (0x00,  0xFF, 0xFF);
-      oled_write_P(layer_names[get_highest_layer(state)], false);
-      break;
-  }
+dprintf("Layer changed to %d\n", get_highest_layer(state));
+  // oled_clear();
+  // switch (get_highest_layer(state)) {
+  //   case _LSEL:
+  //     // rgblight_setrgb (0x00,  0x00, 0xFF);
+  //     oled_write_ln_P(PSTR("Select Layer:"), false);
+  //     display_layer_pre_select();
+  //     break;
+  //   default: //  for any other layers, or the default layer
+  //     // rgblight_setrgb (0x00,  0xFF, 0xFF);
+  //     oled_write_P(layer_names[get_highest_layer(state)], false);
+  //     break;
+  // }
   return state;
-}
-
-void keyboard_post_init_user(void) {
-  // Debug setup
-  debug_enable = true;
-  debug_matrix = true;
-  debug_keyboard = true;
-  //debug_mouse=true;
-
-  // Midi device init
-  // This currently triggers an infinite loop switch 1 trigger
-  // midi_device_init(&midi_device);
-//   midi_device_set_send_func(&midi_device, usb_send_func);
-//     midi_device_set_pre_input_process_func(&midi_device, usb_get_midi);
-//     midi_register_fallthrough_callback(&midi_device, fallthrough_callback);
-//     midi_register_cc_callback(&midi_device, cc_callback);
-
 }
