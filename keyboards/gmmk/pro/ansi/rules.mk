@@ -8,7 +8,7 @@ BOOTLOADER = stm32-dfu
 #   change yes to no to disable
 #
 BOOTMAGIC_ENABLE = lite     # Enable Bootmagic Lite
-MOUSEKEY_ENABLE = yes       # Mouse keys
+MOUSEKEY_ENABLE = no       # Mouse keys
 EXTRAKEY_ENABLE = yes       # Audio control and System control
 CONSOLE_ENABLE = no         # Console for debug
 COMMAND_ENABLE = no         # Commands for debug and configuration
@@ -23,3 +23,5 @@ AUDIO_ENABLE = no           # Audio output
 ENCODER_ENABLE = yes
 RGB_MATRIX_ENABLE = yes
 RGB_MATRIX_DRIVER = AW20216
+
+LEADER_ENABLE = yes
