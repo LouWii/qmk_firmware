@@ -1,7 +1,11 @@
+# MCU name
 MCU = STM32F303
-BOOTLOADER =
+BOARD = QMK_PROTON_C
 
-BOOTMAGIC_ENABLE = lite       # Virtual DIP switch configuration(+1000)
+# Bootloader selection
+BOOTLOADER = stm32-dfu
+
+BOOTMAGIC_ENABLE = lite     # Enable Bootmagic Lite
 MOUSEKEY_ENABLE = yes       # Mouse keys(+4700)
 EXTRAKEY_ENABLE = yes       # Audio control and System control(+450)
 CONSOLE_ENABLE = yes        # Console for debug(+400)
@@ -18,3 +22,5 @@ AUDIO_ENABLE = yes           # Audio output on port C6
 RGBLIGHT_ENABLE = yes       # RGB Enable / Disable
 
 RGBLIGHT_STARTUP_ANIMATION = yes
+
+HAPTIC_ENABLE = SOLENOID

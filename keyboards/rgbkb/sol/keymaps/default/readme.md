@@ -57,13 +57,13 @@
    * ,------------------------------------------------.  ,------------------------------------------------.
    * |  F1  |  F2  |  F3  |  F4  |  F5  |  F6  |      |  |      |  F7  |  F8  |  F9  |  F10 |  F11 |  F12 |
    * |------+------+------+------+------+------|------|  |------|------+------+------+------+------+------|
-   * |      | SAD  | VAI  | SAI  | RESET|      |      |  |      |      |      |      |      |      |      |
+   * |      | SAD  | VAI  | SAI  | RESET|      |      |  |      |      |  P7  |  P8  |  P9  |      |      |
    * |------+------+------+------+------+------|------|  |------|------+------+------+------+------+------|
-   * |      | HUD  | VAD  | HUI  |RGBRST|      |      |  |      |      |QWERTY|COLEMK|      |      |      |
+   * |      | HUD  | VAD  | HUI  |RGBRST|      |      |  |      |      |  P4  |  P5  |  P6  |      |      |
    * |------+------+------+------+------+------+------|  |------+------+------+------+------+------+------|
-   * |      |      |      |      |      |      |      |  |      |      |      |RGBTOG|  HUI |  SAI | VAI  |
+   * |      |      |      |      |      |      |      |  |      |      |  P1  |  P2  |  P3  |      |      |
    * |------+------+------+------+------+------+------|  |------+------+------+------+------+------+------|
-   * |      |      |      |RGBMOD|      |      |      |  |      |      |      |RGBSMOD| HUD |  SAD | VAD  |
+   * |      |      |      |RGBMOD|      |      |      |  |      |      |  P0  | PDOT | NLCK |QWERTY|COLEMK|
    * `------+------+------+------+------+------+------|  |------+------+------+------+------+------+------'
    *                                    |      |      |  |      |      |
    *                                    `-------------'  `-------------'
@@ -92,7 +92,7 @@ RGBLIGHT_FULL_POWER = no    # Allow maximum RGB brightness. Otherwise, limited t
 UNICODE_ENABLE = no         # Unicode
 SWAP_HANDS_ENABLE = no      # Enable one-hand typing
 
-OLED_DRIVER_ENABLE = no     # Enable the OLED Driver (+5000)
+OLED_ENABLE = no     # Enable the OLED Driver (+5000)
 IOS_DEVICE_ENABLE = no      # Limit max brightness to connect to IOS device (iPad,iPhone)
 
 

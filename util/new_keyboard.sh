@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script generates a new keyboard directory under keyboards/,
-# and copies the template files from quantum/template/ into it.
+# and copies the template files from data/templates/ into it.
 
 # Print an error message with the word "ERROR" in red.
 echo_error() {
@@ -32,17 +32,19 @@ set_git_username() {
 
 # Copy the template files to the new keyboard directory.
 copy_templates() {
+    mkdir -p "$keyboard_dir"
+
     echo -n "Copying base template files..."
-    cp -r "quantum/template/base" "${keyboard_dir}"
+    cp -r "data/templates/base/." "${keyboard_dir}"
     echo " done"
 
     echo -n "Copying $keyboard_type template files..."
-    cp -r "quantum/template/${keyboard_type}/." "${keyboard_dir}"
+    cp -r "data/templates/${keyboard_type}/." "${keyboard_dir}"
     echo " done"
 
     echo -n "Renaming keyboard files..."
-    mv "${keyboard_dir}/keyboard.c" "${keyboard_dir}/${keyboard_name}.c"
-    mv "${keyboard_dir}/keyboard.h" "${keyboard_dir}/${keyboard_name}.h"
+    mv "${keyboard_dir}/keyboard.c" "${keyboard_dir}/${keyboard_base_name}.c"
+    mv "${keyboard_dir}/keyboard.h" "${keyboard_dir}/${keyboard_base_name}.h"
     echo " done"
 }
 
@@ -74,9 +76,8 @@ replace_placeholders() {
 replace_year_placeholders() {
     local replace_year_filenames=(
         "${keyboard_dir}/config.h"
-        "${keyboard_dir}/${keyboard_name}.c"
-        "${keyboard_dir}/${keyboard_name}.h"
-        "${keyboard_dir}/keymaps/default/config.h"
+        "${keyboard_dir}/${keyboard_base_name}.c"
+        "${keyboard_dir}/${keyboard_base_name}.h"
         "${keyboard_dir}/keymaps/default/keymap.c"
     )
     replace_placeholders "%YEAR%" "$(date +%Y)" "${replace_year_filenames[@]}"
@@ -88,10 +89,10 @@ replace_keyboard_placeholders() {
         "${keyboard_dir}/config.h"
         "${keyboard_dir}/info.json"
         "${keyboard_dir}/readme.md"
-        "${keyboard_dir}/${keyboard_name}.c"
+        "${keyboard_dir}/${keyboard_base_name}.c"
         "${keyboard_dir}/keymaps/default/readme.md"
     )
-    replace_placeholders "%KEYBOARD%" "$keyboard_name" "${replace_keyboard_filenames[@]}"
+    replace_placeholders "%KEYBOARD%" "$keyboard_base_name" "${replace_keyboard_filenames[@]}"
 }
 
 # Replace %YOUR_NAME% with the username.
@@ -100,9 +101,8 @@ replace_name_placeholders() {
         "${keyboard_dir}/config.h"
         "${keyboard_dir}/info.json"
         "${keyboard_dir}/readme.md"
-        "${keyboard_dir}/${keyboard_name}.c"
-        "${keyboard_dir}/${keyboard_name}.h"
-        "${keyboard_dir}/keymaps/default/config.h"
+        "${keyboard_dir}/${keyboard_base_name}.c"
+        "${keyboard_dir}/${keyboard_base_name}.h"
         "${keyboard_dir}/keymaps/default/keymap.c"
     )
     replace_placeholders "%YOUR_NAME%" "$username" "${replace_name_filenames[@]}"
@@ -129,6 +129,12 @@ if [ ! -d "quantum" ]; then
     exit 1
 fi
 
+echo_bold "########################################"
+echo_bold "#                NOTICE                #"
+echo_bold "#   This script has been deprecated.   #"
+echo_bold "# Please use qmk new-keyboard instead. #"
+echo_bold "########################################"
+echo
 echo_bold "Generating a new QMK keyboard directory"
 echo
 
@@ -136,6 +142,7 @@ echo
 while [ -z "$keyboard_name" ]; do
     prompt "Keyboard Name" ""
     keyboard_name=$prompt_return
+    keyboard_base_name=$(basename $keyboard_name)
 done
 
 keyboard_dir="keyboards/$keyboard_name"

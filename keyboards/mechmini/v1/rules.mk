@@ -12,17 +12,11 @@ MCU = atmega32a
 BOOTLOADER = atmel-dfu
 
 # build options
-BOOTMAGIC_ENABLE = yes
+BOOTMAGIC_ENABLE = lite     # Enable Bootmagic Lite
 MOUSEKEY_ENABLE = yes
 EXTRAKEY_ENABLE = yes
-CONSOLE_ENABLE = yes
+CONSOLE_ENABLE = no
 COMMAND_ENABLE = yes
-BACKLIGHT_ENABLE = no
+BACKLIGHT_ENABLE = yes
 RGBLIGHT_ENABLE = yes
 WS2812_DRIVER = i2c
-
-OPT_DEFS = -DDEBUG_LEVEL=0
-
-# custom matrix setup
-CUSTOM_MATRIX = yes
-SRC = matrix.c

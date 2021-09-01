@@ -19,12 +19,11 @@
 #include "config_common.h"
 
 /* USB Device descriptor parameter */
-#define VENDOR_ID       0x5241 // "RW"
+#define VENDOR_ID       0x5241 // "RA"
 #define PRODUCT_ID      0x080A // 80-A
 #define DEVICE_VER      0x0001
 #define MANUFACTURER    RAMA WORKS
 #define PRODUCT         RAMA WORKS U80-A
-#define DESCRIPTION     RAMA WORKS U80-A
 
 /* key matrix size */
 #define MATRIX_ROWS 6
@@ -156,29 +155,6 @@
 //#define NO_ACTION_MACRO
 //#define NO_ACTION_FUNCTION
 
-/*
- * MIDI options
- */
-
-/* Prevent use of disabled MIDI features in the keymap */
-//#define MIDI_ENABLE_STRICT 1
-
-/* enable basic MIDI features:
-   - MIDI notes can be sent when in Music mode is on
-*/
-//#define MIDI_BASIC
-
-/* enable advanced MIDI features:
-   - MIDI notes can be added to the keymap
-   - Octave shift and transpose
-   - Virtual sustain, portamento, and modulation wheel
-   - etc.
-*/
-//#define MIDI_ADVANCED
-
-/* override number of MIDI tone keycodes (each octave adds 12 keycodes and allocates 12 bytes) */
-//#define MIDI_TONE_KEYCODE_OCTAVES 1
-
 // IS31FL3731 driver
 #define DRIVER_COUNT 3
 #define DRIVER_LED_TOTAL 108
@@ -232,25 +208,9 @@
 #define RGB_BACKLIGHT_LAYER_2_INDICATOR { .color = { .h = 0, .s = 0 }, .index = 255 }
 #define RGB_BACKLIGHT_LAYER_3_INDICATOR { .color = { .h = 0, .s = 0 }, .index = 255 }
 
+// Backlight config starts after VIA's EEPROM usage,
+// dynamic keymaps start after this.
+#define VIA_EEPROM_CUSTOM_CONFIG_SIZE 31
 
-#define DYNAMIC_KEYMAP_LAYER_COUNT 4
-
-// EEPROM usage
-
-// TODO: refactor with new user EEPROM code (coming soon)
-#define EEPROM_MAGIC 0x451F
-#define EEPROM_MAGIC_ADDR 34
-// Bump this every time we change what we store
-// This will automatically reset the EEPROM with defaults
-// and avoid loading invalid data from the EEPROM
-#define EEPROM_VERSION 0x07
-#define EEPROM_VERSION_ADDR 36
-
-// Backlight config starts after EEPROM version
-#define RGB_BACKLIGHT_CONFIG_EEPROM_ADDR 37
-// Dynamic keymap starts after backlight config (37+31)
-#define DYNAMIC_KEYMAP_EEPROM_ADDR 68
-// Dynamic macro starts after dynamic keymaps (68+(4*6*17*2)) = (68+816)
-#define DYNAMIC_KEYMAP_MACRO_EEPROM_ADDR 884
-#define DYNAMIC_KEYMAP_MACRO_EEPROM_SIZE 140
-#define DYNAMIC_KEYMAP_MACRO_COUNT 16
+// VIA lighting is handled by the keyboard-level code
+#define VIA_CUSTOM_LIGHTING_ENABLE

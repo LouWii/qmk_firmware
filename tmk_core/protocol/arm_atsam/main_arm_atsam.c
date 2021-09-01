@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "samd51j18a.h"
-#include "tmk_core/common/keyboard.h"
+#include "keyboard.h"
 
 #include "report.h"
 #include "host.h"
@@ -110,42 +110,86 @@ void send_mouse(report_mouse_t *report) {
 #endif  // MOUSEKEY_ENABLE
 }
 
-void send_system(uint16_t data) {
 #ifdef EXTRAKEY_ENABLE
+void send_extra(uint8_t report_id, uint16_t data) {
     uint32_t irqflags;
 
     irqflags = __get_PRIMASK();
     __disable_irq();
     __DMB();
 
-    udi_hid_exk_report.desc.report_id = REPORT_ID_SYSTEM;
-    if (data != 0) data = data - SYSTEM_POWER_DOWN + 1;
+    udi_hid_exk_report.desc.report_id   = report_id;
     udi_hid_exk_report.desc.report_data = data;
     udi_hid_exk_b_report_valid          = 1;
     udi_hid_exk_send_report();
 
     __DMB();
     __set_PRIMASK(irqflags);
+}
+#endif  // EXTRAKEY_ENABLE
+
+void send_system(uint16_t data) {
+#ifdef EXTRAKEY_ENABLE
+    send_extra(REPORT_ID_SYSTEM, data);
 #endif  // EXTRAKEY_ENABLE
 }
 
 void send_consumer(uint16_t data) {
 #ifdef EXTRAKEY_ENABLE
-    uint32_t irqflags;
-
-    irqflags = __get_PRIMASK();
-    __disable_irq();
-    __DMB();
-
-    udi_hid_exk_report.desc.report_id   = REPORT_ID_CONSUMER;
-    udi_hid_exk_report.desc.report_data = data;
-    udi_hid_exk_b_report_valid          = 1;
-    udi_hid_exk_send_report();
-
-    __DMB();
-    __set_PRIMASK(irqflags);
+    send_extra(REPORT_ID_CONSUMER, data);
 #endif  // EXTRAKEY_ENABLE
 }
+
+#ifdef CONSOLE_ENABLE
+#    define CONSOLE_PRINTBUF_SIZE 512
+static char     console_printbuf[CONSOLE_PRINTBUF_SIZE];
+static uint16_t console_printbuf_len = 0;
+
+int8_t sendchar(uint8_t c) {
+    if (console_printbuf_len >= CONSOLE_PRINTBUF_SIZE) return -1;
+
+    console_printbuf[console_printbuf_len++] = c;
+    return 0;
+}
+
+void main_subtask_console_flush(void) {
+    while (udi_hid_con_b_report_trans_ongoing) {
+    }  // Wait for any previous transfers to complete
+
+    uint16_t result = console_printbuf_len;
+    uint32_t irqflags;
+    char *   pconbuf  = console_printbuf;  // Pointer to start send from
+    int      send_out = CONSOLE_EPSIZE;    // Bytes to send per transfer
+
+    while (result > 0) {  // While not error and bytes remain
+        while (udi_hid_con_b_report_trans_ongoing) {
+        }  // Wait for any previous transfers to complete
+
+        irqflags = __get_PRIMASK();
+        __disable_irq();
+        __DMB();
+
+        if (result < CONSOLE_EPSIZE) {                      // If remaining bytes are less than console epsize
+            memset(udi_hid_con_report, 0, CONSOLE_EPSIZE);  // Clear the buffer
+            send_out = result;                              // Send remaining size
+        }
+
+        memcpy(udi_hid_con_report, pconbuf, send_out);  // Copy data into the send buffer
+
+        udi_hid_con_b_report_valid = 1;  // Set report valid
+        udi_hid_con_send_report();       // Send report
+
+        __DMB();
+        __set_PRIMASK(irqflags);
+
+        result -= send_out;   // Decrement result by bytes sent
+        pconbuf += send_out;  // Increment buffer point by bytes sent
+    }
+
+    console_printbuf_len = 0;
+}
+
+#endif  // CONSOLE_ENABLE
 
 void main_subtask_usb_state(void) {
     static uint64_t fsmstate_on_delay = 0;                          // Delay timer to be sure USB is actually operating before bringing up hardware
@@ -213,10 +257,20 @@ void main_subtask_usb_extra_device(void) {
     }
 }
 
+#ifdef RAW_ENABLE
+void main_subtask_raw(void) { udi_hid_raw_receive_report(); }
+#endif
+
 void main_subtasks(void) {
     main_subtask_usb_state();
     main_subtask_power_check();
     main_subtask_usb_extra_device();
+#ifdef CONSOLE_ENABLE
+    main_subtask_console_flush();
+#endif
+#ifdef RAW_ENABLE
+    main_subtask_raw();
+#endif
 }
 
 int main(void) {
@@ -305,6 +359,9 @@ int main(void) {
             // dprintf("5v=%u 5vu=%u dlow=%u dhi=%u gca=%u gcd=%u\r\n", v_5v, v_5v_avg, v_5v_avg - V5_LOW, v_5v_avg - V5_HIGH, gcr_actual, gcr_desired);
         }
 #endif  // CONSOLE_ENABLE
+
+        // Run housekeeping
+        housekeeping_task();
     }
 
     return 1;

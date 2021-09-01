@@ -24,14 +24,17 @@ SOFTWARE.
 #include "report.h"
 #include "host_driver.h"
 #include "serial_link/system/serial_link.h"
-#include "hal.h"
+#include <hal.h>
 #include "serial_link/protocol/byte_stuffer.h"
 #include "serial_link/protocol/transport.h"
 #include "serial_link/protocol/frame_router.h"
 #include "matrix.h"
+#include "sync_timer.h"
 #include <stdbool.h>
 #include "print.h"
 #include "config.h"
+
+#define SYNC_TIMER_OFFSET 2
 
 static event_source_t new_data_event;
 static bool           serial_link_connected;
@@ -119,7 +122,7 @@ static THD_FUNCTION(serialThread, arg) {
         eventflags_t flags1 = 0;
         eventflags_t flags2 = 0;
         if (need_wait) {
-            eventmask_t mask = chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(1000));
+            eventmask_t mask = chEvtWaitAnyTimeout(ALL_EVENTS, TIME_MS2I(1000));
             if (mask & EVENT_MASK(1)) {
                 flags1 = chEvtGetAndClearFlags(&sd1_listener);
                 print_error("DOWNLINK", flags1, &SD1);
@@ -159,10 +162,16 @@ static matrix_object_t last_matrix = {};
 
 SLAVE_TO_MASTER_OBJECT(keyboard_matrix, matrix_object_t);
 MASTER_TO_ALL_SLAVES_OBJECT(serial_link_connected, bool);
+#ifndef DISABLE_SYNC_TIMER
+MASTER_TO_ALL_SLAVES_OBJECT(sync_timer, uint32_t);
+#endif
 
 static remote_object_t* remote_objects[] = {
     REMOTE_OBJECT(serial_link_connected),
     REMOTE_OBJECT(keyboard_matrix),
+#ifndef DISABLE_SYNC_TIMER
+    REMOTE_OBJECT(sync_timer),
+#endif
 };
 
 void init_serial_link(void) {
@@ -192,7 +201,7 @@ void serial_link_update(void) {
 
     systime_t current_time = chVTGetSystemTimeX();
     systime_t delta        = current_time - last_update;
-    if (changed || delta > US2ST(5000)) {
+    if (changed || delta > TIME_US2I(5000)) {
         last_update        = current_time;
         last_matrix        = matrix;
         matrix_object_t* m = begin_write_keyboard_matrix();
@@ -200,14 +209,27 @@ void serial_link_update(void) {
             m->rows[i] = matrix.rows[i];
         }
         end_write_keyboard_matrix();
+
         *begin_write_serial_link_connected() = true;
         end_write_serial_link_connected();
+
+#ifndef DISABLE_SYNC_TIMER
+        *begin_write_sync_timer() = sync_timer_read32() + SYNC_TIMER_OFFSET;
+        end_write_sync_timer();
+#endif
     }
 
     matrix_object_t* m = read_keyboard_matrix(0);
     if (m) {
         matrix_set_remote(m->rows, 0);
     }
+
+#ifndef DISABLE_SYNC_TIMER
+    uint32_t* t = read_sync_timer();
+    if (t) {
+        sync_timer_update(*t);
+    }
+#endif
 }
 
 void signal_data_written(void) { chEvtBroadcast(&new_data_event); }
