@@ -170,3 +170,11 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     return state;
 }
 
+bool oled_task_user(void) {
+    // time in ms since the keyboard booted
+    if (timer_elapsed32(0) < 3000) {
+        render_logo();
+        return false; // false = skip the keyboard-level OLED drawing
+    }
+    return true;
+}
