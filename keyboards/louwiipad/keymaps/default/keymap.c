@@ -81,8 +81,29 @@ static void clear_logo(void) {
     #endif
 }
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+void process_layer_cycle(bool is_up) {
     uint8_t current_layer = get_highest_layer(layer_state);
+
+    // Check if we are within the range, if not quit
+    if (current_layer > LAYER_CYCLE_END || current_layer < LAYER_CYCLE_START) {
+        return;
+    }
+
+    uint8_t next_layer = 0;
+
+    if (is_up == true) {
+        next_layer = current_layer + 1;
+    } else {
+        next_layer = current_layer - 1;
+    }
+
+    if (next_layer > LAYER_CYCLE_END || next_layer < LAYER_CYCLE_START) {
+        return;
+    }
+    layer_move(next_layer);
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     switch (keycode) {
         case KC_LAYER_GO_UP:
@@ -91,17 +112,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 // We've already handled the keycode (doing nothing), let QMK know so no further code is run unnecessarily
                 return false;
             }
-
-            // Check if we are within the range, if not quit
-            if (current_layer > LAYER_CYCLE_END || current_layer < LAYER_CYCLE_START) {
-                return false;
-            }
-
-            uint8_t next_up_layer = current_layer + 1;
-            if (next_up_layer > LAYER_CYCLE_END) {
-                return false;
-            }
-            layer_move(next_up_layer);
+            process_layer_cycle(true);
             return false;
     
         case KC_LAYER_GO_DOWN:
@@ -110,17 +121,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 // We've already handled the keycode (doing nothing), let QMK know so no further code is run unnecessarily
                 return false;
             }
-
-            // Check if we are within the range, if not quit
-            if (current_layer > LAYER_CYCLE_END || current_layer < LAYER_CYCLE_START) {
-                return false;
-            }
-
-            uint8_t next_down_layer = current_layer - 1;
-            if (next_down_layer < LAYER_CYCLE_START) {
-                return false;
-            }
-            layer_move(next_down_layer);
+            process_layer_cycle(false);
             return false;
 
         case KC_LOGO:

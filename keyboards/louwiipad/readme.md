@@ -10,9 +10,17 @@ Make example for this keyboard (after setting up your build environment):
 
     make louwiipad:default
 
+Or
+
+    qmk compile -kb louwiipad -km DEFAULT
+
 Flashing example for this keyboard:
 
     make louwiipad:default:flash
+
+When making changes to any of the keyboard files, run the linter to make sure everything's clean:
+
+    qmk lint -kb louwiipad
 
 See the [build environment setup](https://docs.qmk.fm/#/getting_started_build_tools) and the [make instructions](https://docs.qmk.fm/#/getting_started_make_guide) for more information. Brand new to QMK? Start with our [Complete Newbs Guide](https://docs.qmk.fm/#/newbs).
 
