@@ -17,10 +17,16 @@ enum layer_names {
 enum keycodes {
   KC_LAYER_GO_UP = QK_USER,
   KC_LAYER_GO_DOWN,
-  KC_LOGO
+  KC_LOGO,
+  KC_SC_UP,
+  KC_SC_DOWN
 };
 
 static bool logo_rendered = false;
+
+// Starting level for OLED screen brightness
+static uint8_t oled_level = 255;
+const uint8_t oled_level_step = 15;
 
 // const char PROGMEM layer_names[2][20] = {
 //   "Base Layer",
@@ -54,7 +60,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     },
     [_RGB_L] = {
         ENCODER_CCW_CW(UG_HUED, UG_HUEU),  ENCODER_CCW_CW(UG_VALD, UG_VALU), ENCODER_CCW_CW(UG_SATD, UG_SATU),
-        ENCODER_CCW_CW(MS_WHLU, MS_WHLD),  ENCODER_CCW_CW(UG_PREV, UG_NEXT), ENCODER_CCW_CW(KC_LAYER_GO_DOWN, KC_LAYER_GO_UP)
+        ENCODER_CCW_CW(KC_SC_DOWN, KC_SC_UP),  ENCODER_CCW_CW(UG_PREV, UG_NEXT), ENCODER_CCW_CW(KC_LAYER_GO_DOWN, KC_LAYER_GO_UP)
     }
 };
 #endif
@@ -103,6 +109,32 @@ void process_layer_cycle(bool is_up) {
     layer_move(next_layer);
 }
 
+void process_screen_brightness_cycle(bool is_up) {
+    uint8_t new_level = oled_level;
+    if (is_up == true) {
+        if (255 - oled_level < oled_level_step) {
+            new_level = 255;
+        } else {
+            new_level += oled_level_step;
+        }
+    } else {
+        if (oled_level < oled_level_step) {
+            new_level = 0;
+        } else {
+            new_level -= oled_level_step;
+        }
+    }
+    oled_set_brightness(new_level);
+    oled_level = new_level;
+
+    // Display brightness level on screen
+    char buf[24];
+    // %u to insert uint var, -3 to add left padding to compensate between 1 char int and 3 chars int
+    snprintf(buf, sizeof(buf), "Brightness: %-3u    ", oled_level);
+    oled_set_cursor(0, 0);
+    oled_write(buf, false);
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     switch (keycode) {
@@ -138,6 +170,24 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
+        case KC_SC_UP:
+            // Our logic will happen on presses, nothing is done on releases
+            if (!record->event.pressed) {
+                // We've already handled the keycode (doing nothing), let QMK know so no further code is run unnecessarily
+                return false;
+            }
+            process_screen_brightness_cycle(true);
+            return false;
+
+        case KC_SC_DOWN:
+            // Our logic will happen on presses, nothing is done on releases
+            if (!record->event.pressed) {
+                // We've already handled the keycode (doing nothing), let QMK know so no further code is run unnecessarily
+                return false;
+            }
+            process_screen_brightness_cycle(false);
+            return false;
+
         // Process other keycodes normally
         default:
             return true;
@@ -159,7 +209,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
             oled_write_P(PSTR("Media\n"), false);
             break;
         case _RGB_L:
-            oled_write_P(PSTR("RGB Layer\n"), false);
+            oled_write_P(PSTR("RGB & Light\n"), false);
             break;
         default:
             // Or use the write_ln shortcut over adding '\n' to the end of your string
@@ -170,6 +220,14 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     return state;
 }
 
+#ifdef OLED_ENABLE
+oled_rotation_t oled_init_user(oled_rotation_t rotation) {
+    // Set the brightness on init
+    oled_set_brightness(oled_level);
+
+    return rotation;
+}
+
 bool oled_task_user(void) {
     // time in ms since the keyboard booted
     if (timer_elapsed32(0) < 3000) {
@@ -178,3 +236,4 @@ bool oled_task_user(void) {
     }
     return true;
 }
+#endif
