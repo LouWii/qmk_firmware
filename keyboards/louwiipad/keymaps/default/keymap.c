@@ -24,9 +24,11 @@ enum keycodes {
 
 static bool logo_rendered = false;
 
+#ifdef OLED_ENABLE
 // Starting level for OLED screen brightness
 static uint8_t oled_level = 255;
 const uint8_t oled_level_step = 15;
+#endif
 
 // const char PROGMEM layer_names[2][20] = {
 //   "Base Layer",
@@ -48,7 +50,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     )
 };
 
-#if defined(ENCODER_MAP_ENABLE)
+#ifdef ENCODER_MAP_ENABLE
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [_BASE_L] = {
         ENCODER_CCW_CW(MS_WHLD, MS_WHLU),  ENCODER_CCW_CW(KC_VOLD, KC_VOLU), ENCODER_CCW_CW(KC_PGUP, KC_PGDN),
@@ -191,7 +193,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         // Process other keycodes normally
         default:
             return true;
-  }
+    }
     return true;
 }
 
